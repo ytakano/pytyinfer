@@ -4,15 +4,15 @@ import ply.yacc as yacc
 # Grammar:
 #
 # VAR := [a-zA-Z][a-zA-Z0-1]*
-# EXP := fun $VAR { $EXP }              |
-#           if $EXP then $EXP else $EXP |
-#           $EXP ( $EXP )               |
-#           iszero ( $EXP )             |
-#           pred ( $EXP )               |
-#           succ ( $EXP )               |
-#           true                        |
-#           false                       |
-#           ( $EXP )                    |
+# EXP := fun $VAR { $EXP }                      |
+#           if $EXP then { $EXP } else { $EXP } |
+#           $EXP ( $EXP )                       |
+#           iszero ( $EXP )                     |
+#           pred ( $EXP )                       |
+#           succ ( $EXP )                       |
+#           true                                |
+#           false                               |
+#           ( $EXP )                            |
 #           $VAR
 
 
@@ -94,8 +94,8 @@ def p_expression_apply(p):
     p[0] = ['apply', get_pos(p, 1), p[1], p[3]]
 
 def p_expression_if(p):
-    'expression : IF expression THEN expression ELSE expression'
-    p[0] = ['if', get_pos(p, 1), p[2], p[4], p[6]]
+    'expression : IF expression THEN LBRACE expression RBRACE ELSE LBRACE expression RBRACE'
+    p[0] = ['if', get_pos(p, 1), p[2], p[5], p[9]]
 
 def p_expression_true(p):
     'expression : TRUE'
