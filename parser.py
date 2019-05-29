@@ -4,8 +4,7 @@ import ply.yacc as yacc
 # Grammar:
 #
 # VAR    := [a-zA-Z][a-zA-Z0-1]*
-# TYPE   := : bool | : int | ∅
-# LAMBDA := fun $VAR $TYPE { $LAMBDA }           |
+# LAMBDA := fun $VAR { $LAMBDA }                 |
 #           if $LAMBDA then $LAMBDA else $LAMBDA |
 #           $LAMBDA ( $LAMBDA )                  |
 #           iszero ( $LAMBDA )                   |
@@ -17,8 +16,13 @@ import ply.yacc as yacc
 #           $VAR
 
 
-# lexer
+# data which will be parsed
+data = ''
 
+
+# tokenizer
+
+# reserved words
 reserved = {
     'if'     : 'IF',
     'then'   : 'THEN',
@@ -29,8 +33,6 @@ reserved = {
     'false'  : 'FALSE',
     'iszero' : 'ISZERO',
     'fun'    : 'FUN',
-    'bool'   : 'BOOL',
-    'int'    : 'INT',
 }
 
 tokens = [
@@ -39,7 +41,6 @@ tokens = [
     'RPAREN',
     'LBRACE',
     'RBRACE',
-    'COMMA',
     'ID',
 ] + list(reserved.values())
 
@@ -47,7 +48,6 @@ t_LPAREN = r'\('
 t_RPAREN = r'\)'
 t_LBRACE = r'\{'
 t_RBRACE = r'\}'
-t_COMMA  = r':'
 
 t_ignore = ' \t'
 
@@ -61,51 +61,65 @@ def t_ID(t):
     t.type = reserved.get(t.value,'ID')
     return t
 
+def t_error(t):
+    print(u"invalid character: '%s'" % t.value[0])
+
 def t_newline(t):
     r'\n+'
     t.lexer.lineno += len(t.value)
 
-def t_error(t):
-    print(u"invalid character: '%s'" % t.value[0])
 
 
 # parser
 
+# Compute column.
+#   lexpos is the position of lexer
+def find_column(lexpos):
+    line_start = data.rfind('\n', 0, lexpos) + 1
+    return (lexpos - line_start) + 1
+
+# get the line and the column number of token p[n]
+#   p is a parse context of ply
+#   n is the position of the token in p
+def get_pos(p, n):
+    return {'line': p.lineno(n),
+            'column': find_column(p.lexpos(n))}
+
 def p_expression_fun(p):
     'expression : FUN var LBRACE expression RBRACE'
-    p[0] = ('lambda', p[2], p[4])
+    p[0] = ('lambda', get_pos(p, 1), p[2], p[4])
 
 def p_expression_apply(p):
     'expression : expression LPAREN expression RPAREN'
-    p[0] = ('apply', p[1], p[3])
+    p[0] = ('apply', get_pos(p, 1), p[1], p[3])
 
 def p_expression_if(p):
     'expression : IF expression THEN expression ELSE expression'
-    p[0] = ('if', p[2], p[4], p[6])
+    p[0] = ('if', get_pos(p, 1), p[2], p[4], p[6])
 
 def p_expression_true(p):
     'expression : TRUE'
-    p[0] = 'true'
+    p[0] = ('true', get_pos(p, 1))
 
 def p_expression_false(p):
     'expression : FALSE'
-    p[0] = 'false'
+    p[0] = ('false', get_pos(p, 1))
 
 def p_expression_zero(p):
     'expression : ZERO'
-    p[0] = 'zero'
+    p[0] = ('zero', get_pos(p, 1))
 
 def p_expression_succ(p):
     'expression : SUCC LPAREN expression RPAREN'
-    p[0] = ('succ', p[3])
+    p[0] = ('succ', get_pos(p, 1), p[3])
 
 def p_expression_pred(p):
     'expression : PRED LPAREN expression RPAREN'
-    p[0] = ('pred', p[3])
+    p[0] = ('pred', get_pos(p, 1), p[3])
 
 def p_expression_iszero(p):
     'expression : ISZERO LPAREN expression RPAREN'
-    p[0] = ('iszero', p[3])
+    p[0] = ('iszero', get_pos(p, 1), p[3])
 
 def p_expression_paren(p):
     'expression : LPAREN expression RPAREN'
@@ -117,12 +131,25 @@ def p_expression_var(p):
 
 def p_var(p):
     'var : ID'
-    p[0] = ('var', p[1])
+    p[0] = ('var', get_pos(p, 1), p[1])
+
+def p_error(p):
+    if p:
+        print('Syntax error: %d:%d: %r' % (p.lineno, find_column(p.lexpos), p.value))
+        exit()
+    else:
+        print('Syntax error: EOF')
+
 
 if __name__ == '__main__':
-    data = 'fun x { if x then succ(0) else succ(succ(0)) } (true)'
+    data = '''
+fun x {
+    if x then succ(0) else succ(succ(0))
+} (true)'''
+
     lexer = lex.lex()
     parser = yacc.yacc()
-    result = yacc.parse(data, lexer=lexer)
+    result = yacc.parse(data, lexer=lexer, tracking=True)
     print('expression:', data)
+    print('')
     print('AST:', result)
