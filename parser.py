@@ -3,16 +3,16 @@ import ply.yacc as yacc
 
 # Grammar:
 #
-# VAR    := [a-zA-Z][a-zA-Z0-1]*
-# LAMBDA := fun $VAR { $LAMBDA }                 |
-#           if $LAMBDA then $LAMBDA else $LAMBDA |
-#           $LAMBDA ( $LAMBDA )                  |
-#           iszero ( $LAMBDA )                   |
-#           pred ( $LAMBDA )                     |
-#           succ ( $LAMBDA )                     |
-#           true                                 |
-#           false                                |
-#           ( $LAMBDA )                          |
+# VAR := [a-zA-Z][a-zA-Z0-1]*
+# EXP := fun $VAR { $EXP }              |
+#           if $EXP then $EXP else $EXP |
+#           $EXP ( $EXP )               |
+#           iszero ( $EXP )             |
+#           pred ( $EXP )               |
+#           succ ( $EXP )               |
+#           true                        |
+#           false                       |
+#           ( $EXP )                    |
 #           $VAR
 
 
@@ -87,39 +87,39 @@ def get_pos(p, n):
 
 def p_expression_fun(p):
     'expression : FUN var LBRACE expression RBRACE'
-    p[0] = ('lambda', get_pos(p, 1), p[2], p[4])
+    p[0] = ['lambda', get_pos(p, 1), p[2], p[4]]
 
 def p_expression_apply(p):
     'expression : expression LPAREN expression RPAREN'
-    p[0] = ('apply', get_pos(p, 1), p[1], p[3])
+    p[0] = ['apply', get_pos(p, 1), p[1], p[3]]
 
 def p_expression_if(p):
     'expression : IF expression THEN expression ELSE expression'
-    p[0] = ('if', get_pos(p, 1), p[2], p[4], p[6])
+    p[0] = ['if', get_pos(p, 1), p[2], p[4], p[6]]
 
 def p_expression_true(p):
     'expression : TRUE'
-    p[0] = ('true', get_pos(p, 1))
+    p[0] = ['true', get_pos(p, 1)]
 
 def p_expression_false(p):
     'expression : FALSE'
-    p[0] = ('false', get_pos(p, 1))
+    p[0] = ['false', get_pos(p, 1)]
 
 def p_expression_zero(p):
     'expression : ZERO'
-    p[0] = ('zero', get_pos(p, 1))
+    p[0] = ['zero', get_pos(p, 1)]
 
 def p_expression_succ(p):
     'expression : SUCC LPAREN expression RPAREN'
-    p[0] = ('succ', get_pos(p, 1), p[3])
+    p[0] = ['succ', get_pos(p, 1), p[3]]
 
 def p_expression_pred(p):
     'expression : PRED LPAREN expression RPAREN'
-    p[0] = ('pred', get_pos(p, 1), p[3])
+    p[0] = ['pred', get_pos(p, 1), p[3]]
 
 def p_expression_iszero(p):
     'expression : ISZERO LPAREN expression RPAREN'
-    p[0] = ('iszero', get_pos(p, 1), p[3])
+    p[0] = ['iszero', get_pos(p, 1), p[3]]
 
 def p_expression_paren(p):
     'expression : LPAREN expression RPAREN'
@@ -131,7 +131,7 @@ def p_expression_var(p):
 
 def p_var(p):
     'var : ID'
-    p[0] = ('var', get_pos(p, 1), p[1])
+    p[0] = ['var', get_pos(p, 1), p[1]]
 
 def p_error(p):
     if p:
@@ -140,16 +140,8 @@ def p_error(p):
     else:
         print('Syntax error: EOF')
 
-
-if __name__ == '__main__':
-    data = '''
-fun x {
-    if x then succ(0) else succ(succ(0))
-} (true)'''
-
+def parse(s):
+    data = s
     lexer = lex.lex()
     parser = yacc.yacc()
-    result = yacc.parse(data, lexer=lexer, tracking=True)
-    print('expression:', data)
-    print('')
-    print('AST:', result)
+    return yacc.parse(data, lexer=lexer, tracking=True)
