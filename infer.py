@@ -1,12 +1,14 @@
+from pprint import pprint
 from parser import parse
 from enum import Enum
+import sys
 
 class TypeInfer():
     def __init__(self, ast):
         self.__num = 0
         self.tenv = {}
         self.constraint = []
-        self.result = self.__typing(ast)
+        self.typed_ast = self.__typing(ast)
 
     def __gensym(self):
         self.__num = self.__num + 1
@@ -31,12 +33,14 @@ class TypeInfer():
             return self.__ct_var(ast)
         elif ast[0] == 'if':
             return self.__ct_if(ast)
+        elif ast[0] == 'apply':
+            return self.__ct_app(ast)
 
     # CT-Var
     # input:
     #   ast: ['var', position, str]
     # output:
-    #   [type variable, ['var', position, str]]
+    #   [type, ['var', position, str]]
     def __ct_var(self, ast):
         if ast[2] in self.tenv:
             return [self.tenv[ast[2]], ast]
@@ -45,14 +49,18 @@ class TypeInfer():
             raise
 
     # CT-True
+    # input:
+    #   ast: ['true', position]
+    # output:
+    #   ['bool' ['true', position]]
     def __ct_true(self, ast):
         return ['bool', ast]
 
-    # CT-False
-    def __ct_false(self, ast):
-        return ['bool', ast]
-
     # CT-Zero
+    # input:
+    #   ast: ['zero', position]
+    # output:
+    #   ['int' ['zero', position]]
     def __ct_zero(self, ast):
         return ['int', ast]
 
@@ -63,48 +71,29 @@ class TypeInfer():
     #   ['int', ['succ', position, typed AST]]
     def __ct_succ(self, ast):
         ast[2] = self.__typing(ast[2])
-        self.constraint.append((ast[2][0], 'int'))
+        self.__add_constraint(ast[2][0], 'int')
         return ['int', ast]
-
-    # CT-Pred
-    # input:
-    #   ast: ['pred', position, AST]
-    # output:
-    #   ['int', ['pred', position, typed AST]]
-    def __ct_pred(self, ast):
-        ast[2] = self.__typing(ast[2])
-        self.constraint.append((ast[2][0], 'int'))
-        return ['int', ast]
-
-    # CT-IsZero
-    # input:
-    #   ast: ['iszero', position, AST]
-    # output:
-    #   ['bool', ['iszero', position, typed AST]]
-    def __ct_iszero(self, ast):
-        ast[2] = self.__typing(ast[2])
-        self.constraint.append((ast[2][0], 'int'))
-        return ['bool', ast]
 
     # CT-Abs
     # input:
     #   ast: ['lambda', position, ['var', position, string], AST]
     # output:
-    #   [(type variable, type variable),
-    #    ['lambda', position, ['var', position, string], AST]]
+    #   [[type, type], ['lambda', position, ['var', position, string], AST]]
     def __ct_abs(self, ast):
         t1 = self.__gensym()
         self.tenv[ast[2][2]] = t1
         tmp = self.__typing(ast[3])
         t2 = tmp[0]
         ast[3] = tmp
-        return [(t1, t2), ast]
+        return [[t1, t2], ast]
 
+    # CT-If
     # input:
-    #   ast: ['if', position, AST (condition), AST (true), AST (false)]
+    #   ast: ['if', position,
+    #         AST (for condition), AST (for true), AST (for false)]
     # output:
-    #   ast: [type, ['if', position, typed AST (condition),
-    #         typed AST (true), typed AST (false)]]
+    #   [type, ['if', position, typed AST (for condition),
+    #            typed AST (for true), typed AST (for false)]]
     def __ct_if(self, ast):
         ast[2] = self.__typing(ast[2]) # condition
         ast[3] = self.__typing(ast[3]) # expression when true
@@ -112,30 +101,76 @@ class TypeInfer():
         t1 = ast[2][0]
         t2 = ast[3][0]
         t3 = ast[4][0]
-        self.constraint.append((t1, 'bool'))
-        self.constraint.append((t2, t3))
-        return ('bool', ast)
+        self.__add_constraint(t1, 'bool')
+        self.__add_constraint(t2, t3)
+        return ['bool', ast]
 
-d1 = '''
-fun x {
-  fun y {
-    fun z {
-      if iszero(x) then { y } else { z }
-} } }
-'''
-#fun x { iszero(pred(succ(succ(false)))) }
+    #
+    # Implement CT-False, CT-Pred, CT-IsZero, and CT-App rules
+    #
 
-ast = parse(d1)
-print(ast)
+    # CT-False
+    # input:
+    #   ast: ['false', position]
+    # output:
+    #   ['bool' ['false', position]]
+    def __ct_false(self, ast):
+        pass # implement here
 
-t = TypeInfer(ast)
-print(t.result)
-print(t.constraint)
-print(t.tenv)
+    # CT-Pred
+    # input:
+    #   ast: ['pred', position, AST]
+    # output:
+    #   ['int', ['pred', position, typed AST]]
+    def __ct_pred(self, ast):
+        pass # implement here
 
-# d2 = '''
-# fun x {
-#     if x then succ(0) else succ(succ(0))
-# } (true)'''
+    # CT-IsZero
+    # input:
+    #   ast: ['iszero', position, AST]
+    # output:
+    #   ['bool', ['iszero', position, typed AST]]
+    def __ct_iszero(self, ast):
+        pass # implement here
 
-# print(parse(d2))
+    # CT-App
+    # input:
+    #   ast: ['apply', position, AST, AST]
+    # output:
+    #   [type, ['apply', postion, typed AST, typed AST]]
+    def __ct_app(self, ast):
+        pass # implement here
+
+    def __add_constraint(self, t1, t2):
+        if t1 == t2:
+            return
+        self.constraint.append([t1, t2])
+
+
+def do_infer(exp):
+    print('Expression:')
+    print(exp)
+
+    # generate AST from exp
+    ast = parse(exp)
+    print('AST:')
+    pprint(ast)
+
+    # infer type of AST
+    ti = TypeInfer(ast)
+    print('')
+    print('Typed AST:')
+    pprint(ti.typed_ast)
+
+    print('')
+    print('Type Constraint:')
+    pprint(ti.constraint)
+
+
+if __name__ == '__main__':
+    if (len(sys.argv) != 2):
+        print('Usage:\n  $ python %s filename' % sys.argv[0])
+        quit()
+
+    exp = open(sys.argv[1], "r").read()
+    do_infer(exp)
