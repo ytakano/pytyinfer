@@ -41,30 +41,7 @@ $ cd pytylambda
 
 Execute as follows.
 ```
-$ python3 infer.py examples/ex04.lambda
-Expression:
-fun x { succ(x) }
-
-AST:
-['lambda',
- {'column': 1, 'line': 1},
- ['var', {'column': 5, 'line': 1}, 'x'],
- ['succ', {'column': 9, 'line': 1}, ['var', {'column': 14, 'line': 1}, 'x']]]
-
-Typed AST:
-[['T1', 'int'],
- ['lambda',
-  {'column': 1, 'line': 1},
-  ['var', {'column': 5, 'line': 1}, 'x'],
-  ['int',
-   ['succ',
-    {'column': 9, 'line': 1},
-    ['T1', ['var', {'column': 14, 'line': 1}, 'x']]]]]]
-
-Constraint:
-[['T1', 'int']]
-ytakano@Sputnik [master] %> cp ../pytylambda_ans/README.md .         [~/program/python/pytylambda]
-ytakano@Sputnik [master] %> python3 infer.py ./examples/ex04.lambda  [~/program/python/pytylambda]
+$ python3 infer.py ./examples/ex04.lambda
 Expression:
 fun x { succ(x) }
 
