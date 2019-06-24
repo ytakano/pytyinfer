@@ -76,3 +76,19 @@ There are some examples in the examples directory.
 $ ls examples
 ex01.lambda  ex02.lambda  ex03.lambda  ex04.lambda
 ```
+
+## Grammer
+
+```
+VAR := [a-zA-Z][a-zA-Z0-1]*
+EXP := fun $VAR { $EXP }                   |
+       if $EXP then { $EXP } else { $EXP } |
+       $EXP ( $EXP )                       |
+       iszero ( $EXP )                     |
+       pred ( $EXP )                       |
+       succ ( $EXP )                       |
+       true                                |
+       false                               |
+       ( $EXP )                            |
+       $VAR
+```
