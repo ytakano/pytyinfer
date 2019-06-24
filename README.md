@@ -63,6 +63,9 @@ Typed AST:
 
 Type Constraint:
 [['T1', 'int']]
+
+Type Environment:
+{'x': 'T1'}
 ```
 
 ## Examples

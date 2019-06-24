@@ -166,6 +166,10 @@ def do_infer(exp):
     print('Type Constraint:')
     pprint(ti.constraint)
 
+    print('')
+    print('Type Environment:')
+    pprint(ti.tenv)
+
 
 if __name__ == '__main__':
     if (len(sys.argv) != 2):
