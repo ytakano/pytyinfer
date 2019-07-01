@@ -1,5 +1,5 @@
 from pprint import pprint
-from parser import parse
+from tylmdparser import parse
 from enum import Enum
 import sys
 
